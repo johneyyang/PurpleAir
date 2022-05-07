@@ -1,0 +1,83 @@
+### Ghana Purple Air downloaded from SD card
+### Author: Qiang Yang
+### last accessed: 2021-12-21
+
+# progress: line
+# need to:  
+
+### loading packages
+library(ggplot2)
+library(plotly)
+library(scales)
+library(lubridate)
+library(data.table)
+library(gridExtra)
+library(cowplot)
+library(plyr)
+library(dplyr)
+library(grid)
+library(zoo)
+library(openxlsx)
+library(beanplot)
+library(readr)
+
+
+# set universal plotting theme
+theme.timeseries <- theme_bw() +
+  theme(aspect.ratio=3/6,
+        axis.text.y   = element_text(size=18),
+        axis.text.x   = element_text(size=15,angle = 30, hjust = 1),
+        axis.title.y  = element_text(size=18),
+        #axis.title.x  = element_text(size=18),
+        panel.background = element_blank(),
+        panel.grid.major = element_line(size=1, color="gray97", linetype="solid"),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(color = "black"),
+        panel.border = element_rect(color = "black", fill=NA, size=1),
+        plot.title = element_text(size=18,hjust = 0.5),
+        legend.key = element_rect(fill = "white"),
+        legend.title = element_blank(),
+        legend.text = element_text(size=15))
+
+theme.scatter <- theme_bw() +
+  theme(aspect.ratio=4/6,
+        axis.text.y   = element_text(size=18),
+        axis.text.x   = element_text(size=18),
+        axis.title.y  = element_text(size=18),
+        axis.title.x  = element_text(size=18),
+        panel.background = element_blank(),
+        panel.grid.major = element_line(size=1, color="gray97", linetype="solid"),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(color = "black"),
+        panel.border = element_rect(color = "black", fill=NA, size=1),
+        plot.title = element_text(size=18,hjust = 0.5),
+        legend.key = element_rect(fill = "white"),
+        legend.title = element_blank(),
+        legend.text = element_text(size=15))
+
+
+# SET WORKING DIRECTORY
+getwd()
+#setwd("...")
+
+
+#######################################
+### 2021_12_15_Suronuase ###
+#######################################
+filenames_purpleair_Suronuase <- list.files(path = "../../PurpleAir/data_SDcard/2021_12_15_Suronuase",
+                                        recursive = T, pattern = "*.csv", full.names = T)
+print(filenames_purpleair_Suronuase)
+
+list.purpleair.Suronuase <- list()
+for(i in 1:length(filenames_purpleair_Suronuase)){
+  filepath_purpleair_Suronuase <- file.path( filenames_purpleair_Suronuase[i])
+  list.purpleair.Suronuase[[i]] <- read_csv(filepath_purpleair_Suronuase, col_names = T) %>%
+    mutate(timestamp = as.POSIXct(UTCDateTime, format="%Y/%m/%dT%H:%M:%Sz", tz="UTC"))
+}
+
+purpleair_Suronuase <- do.call(rbind, list.purpleair.Suronuase)%>% mutate(community_id = "Suronuase")
+summary(purpleair_Suronuase$timestamp)
+plot_ly()%>%add_lines(data = purpleair_Suronuase, x=~timestamp, y=~pm2_5_atm)%>%
+  layout(title = "Suronuase")
+
+saveRDS(purpleair_Suronuase, "rds_community/purpleair_Suronuase_10.rds")
