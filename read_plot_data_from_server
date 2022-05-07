@@ -1,0 +1,128 @@
+### Ghana KHRC Purple Air data, for each individual session check
+### Author: Qiang Yang
+### last accessed: 2021-12-21
+
+# progress: line
+# need to:  
+
+
+### loading packages
+library(ggplot2)
+library(plotly)
+library(scales)
+library(lubridate)
+library(data.table)
+library(gridExtra)
+library(cowplot)
+library(plyr)
+library(dplyr)
+library(grid)
+library(zoo)
+library(openxlsx)
+library(beanplot)
+library(readr)
+
+
+# set universal plotting theme
+theme.timeseries <- theme_bw() +
+  theme(aspect.ratio=3/6,
+        axis.text.y   = element_text(size=18),
+        axis.text.x   = element_text(size=15,angle = 30, hjust = 1),
+        axis.title.y  = element_text(size=18),
+        #axis.title.x  = element_text(size=18),
+        panel.background = element_blank(),
+        panel.grid.major = element_line(size=1, color="gray97", linetype="solid"),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(color = "black"),
+        panel.border = element_rect(color = "black", fill=NA, size=1),
+        plot.title = element_text(size=18,hjust = 0.5),
+        legend.key = element_rect(fill = "white"),
+        legend.title = element_blank(),
+        legend.text = element_text(size=15))
+
+theme.scatter <- theme_bw() +
+  theme(aspect.ratio=4/6,
+        axis.text.y   = element_text(size=18),
+        axis.text.x   = element_text(size=18),
+        axis.title.y  = element_text(size=18),
+        axis.title.x  = element_text(size=18),
+        panel.background = element_blank(),
+        panel.grid.major = element_line(size=1, color="gray97", linetype="solid"),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(color = "black"),
+        panel.border = element_rect(color = "black", fill=NA, size=1),
+        plot.title = element_text(size=18,hjust = 0.5),
+        legend.key = element_rect(fill = "white"),
+        legend.title = element_blank(),
+        legend.text = element_text(size=15))
+
+
+# SET WORKING DIRECTORY
+getwd()
+#setwd("...")
+
+
+
+##########################
+### Purple Air ###
+##########################
+
+## read in the most recent data from a folder
+purpleair_recent_A_primary <- 
+  read.csv(file = paste0("data/recent/", list.files(path = "data/recent", pattern = glob2rx("UoC-KHRC (outside)*Primary*.csv"))), 
+           header = T) %>% mutate(timestamp = as.POSIXct(created_at, format="%Y-%m-%d %H:%M:%S", tz="GMT"), 
+                                  channel = "A")
+
+purpleair_recent_A_secondary <- 
+  read.csv(file = paste0("data/recent/", list.files(path = "data/recent", pattern = glob2rx("UoC-KHRC (outside)*Secondary*.csv"))), 
+           header = T) %>% mutate(timestamp = as.POSIXct(created_at, format="%Y-%m-%d %H:%M:%S", tz="GMT"), 
+                                  channel = "A")
+
+purpleair_recent_B_primary <- 
+  read.csv(file = paste0("data/recent/", list.files(path = "data/recent", pattern = glob2rx("UoC-KHRC B*Primary*.csv"))), 
+           header = T) %>% mutate(timestamp = as.POSIXct(created_at, format="%Y-%m-%d %H:%M:%S", tz="GMT"), 
+                                  channel = "B")
+
+purpleair_recent_B_secondary <-
+  read.csv(file = paste0("data/recent/", list.files(path = "data/recent", pattern = glob2rx("UoC-KHRC B*Secondary*.csv"))), 
+           header = T) %>% mutate(timestamp = as.POSIXct(created_at, format="%Y-%m-%d %H:%M:%S", tz="GMT"), 
+                                  channel = "B")
+
+
+## function to plot purple air channel A and B
+function_plotly_purpleair_primary_AB <- function(pa_A, pa_B, title) {
+  plotly_pm25 <- plot_ly()%>%
+    #add_lines(data= pa_A, x=~timestamp, y=~PM2.5_CF1_ug.m3, name= "PurpleAir channel A PM2.5_CF1", line = list(color = "red")) %>%
+    #add_lines(data= pa_B, x=~timestamp, y=~PM2.5_CF1_ug.m3, name= "PurpleAir channel B PM2.5_CF1", line = list(color = "black")) %>%
+    add_lines(data= pa_A, x=~timestamp, y=~PM2.5_ATM_ug.m3, name= "PurpleAir channel A PM2.5_ATM", line = list(color = "pink")) %>%
+    add_lines(data= pa_B, x=~timestamp, y=~PM2.5_ATM_ug.m3, name= "PurpleAir channel B PM2.5_ATM", line = list(color = "grey")) %>%
+    layout(yaxis = list(title = "PM2.5 (ug/m3)", range = c(0, max(pa_A$PM2.5_ATM_ug.m3, pa_B$PM2.5_ATM_ug.m3))))
+  
+  plotly_rh <- plot_ly()%>%
+    add_lines(data= pa_A, x=~timestamp, y=~Humidity_., name= "PurpleAir channel A RH", line = list(color = "blue")) %>%
+    layout(yaxis = list(title = "RH (%)"))
+  
+  plotly_temp <- plot_ly()%>%
+    add_lines(data= pa_A, x=~timestamp, y=~(Temperature_F - 32)/1.8, name= "PurpleAir channel A Temp (C)", line = list(color = "green")) %>%
+    layout(yaxis = list(title = "Temperature (C)"))
+  
+  title = title
+  
+  subplot(plotly_pm25,
+          plotly_rh,
+          plotly_temp,
+          
+          nrows = 3, 
+          heights = c(0.5, 0.25, 0.25), 
+          margin = c(0.01, 0.2, 0.01, 0.01), 
+          shareX = T, 
+          titleX = F, 
+          titleY = T) %>%
+    layout(title = title)
+}
+
+function_plotly_purpleair_primary_AB(purpleair_recent_A_primary, purpleair_recent_B_primary, "PurpleAir @ KHRC")
+
+saveRDS(purpleair_recent_A_primary, "purpleair_KHRC_20211217_20211220.rds")
+
+
